@@ -1,0 +1,98 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "geopipe"
+version = "0.1.0"
+description = "Geospatial data pipeline framework for causal inference workflows"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    { name = "Connor T. Jerzak", email = "connor.jerzak@gmail.com" }
+]
+keywords = [
+    "geospatial",
+    "causal-inference",
+    "satellite-imagery",
+    "data-pipeline",
+    "hpc",
+    "slurm",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: GIS",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "geopandas>=0.14.0",
+    "xarray>=2024.1.0",
+    "rioxarray>=0.15.0",
+    "dask[complete]>=2024.1.0",
+    "pyarrow>=14.0.0",
+    "pyyaml>=6.0",
+    "click>=8.0",
+    "rich>=13.0",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+prefect = [
+    "prefect>=2.14.0",
+]
+cluster = [
+    "submitit>=1.5.0",
+]
+remote = [
+    "planetary-computer>=1.0.0",
+    "earthengine-api>=0.1.380",
+    "pystac-client>=0.7.0",
+    "stackstac>=0.5.0",
+    "tenacity>=8.0.0",
+    "requests>=2.28.0",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0",
+]
+all = [
+    "geopipe[prefect,cluster,remote,dev]",
+]
+
+[project.scripts]
+geopipe = "geopipe.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/cjerzak/geopipe-software"
+Documentation = "https://github.com/cjerzak/geopipe-software#readme"
+Repository = "https://github.com/cjerzak/geopipe-software"
+Issues = "https://github.com/cjerzak/geopipe-software/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["geopipe"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --cov=geopipe"
