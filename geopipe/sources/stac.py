@@ -202,6 +202,9 @@ class STACSource(DataSource, RemoteSourceMixin):
         filename = f"{item.id}_{asset_key}.tif"
         output_path = output_dir / filename
 
+        # Ensure output directory exists
+        output_dir.mkdir(parents=True, exist_ok=True)
+
         if output_path.exists():
             return output_path
 
