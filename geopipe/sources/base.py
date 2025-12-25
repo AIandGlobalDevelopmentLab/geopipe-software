@@ -2,7 +2,10 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from geopipe.quality.preflight import PreflightResult
 
 import geopandas as gpd
 import pandas as pd
@@ -109,6 +112,29 @@ class DataSource(ABC):
             issues.append(f"No files found matching pattern: {self.path}")
 
         return issues
+
+    def preflight_check(self) -> "PreflightResult":
+        """
+        Run fast preflight validation checks.
+
+        Validates configuration, accessibility, and metadata without
+        loading the full dataset. Use before expensive load() operations.
+
+        Returns:
+            PreflightResult with issues and pass/fail status
+
+        Example:
+            >>> source = RasterSource("nightlights", path="data/*.tif")
+            >>> result = source.preflight_check()
+            >>> if result.should_block:
+            ...     print(result.summary())
+            ...     raise ValueError("Preflight check failed")
+            >>> # Safe to proceed with load()
+            >>> data = source.load()
+        """
+        from geopipe.quality.preflight import PreflightResult, run_preflight_checks
+
+        return run_preflight_checks(self)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(name={self.name!r}, path={self.path!r})"

@@ -118,7 +118,91 @@ def validate(schema_file: str) -> None:
             console.print(f"  [red]✗[/red] {issue}")
         raise click.Abort()
     else:
-        console.print("[green]✓ All sources valid[/green]")
+        console.print("[green]All sources valid[/green]")
+
+
+@main.command()
+@click.argument("schema_file", type=click.Path(exists=True))
+@click.option(
+    "--strict",
+    is_flag=True,
+    help="Fail on warnings (not just errors)",
+)
+@click.option(
+    "--source", "-s",
+    multiple=True,
+    help="Check only specific source(s) by name",
+)
+def preflight(
+    schema_file: str,
+    strict: bool,
+    source: tuple[str, ...],
+) -> None:
+    """
+    Run fast preflight checks on data sources.
+
+    Validates configuration, accessibility, and basic format before
+    expensive data loading operations.
+
+    Example:
+        geopipe preflight schema.yaml
+        geopipe preflight schema.yaml --strict
+        geopipe preflight schema.yaml --source nightlights
+    """
+    from geopipe.fusion.schema import FusionSchema
+    from geopipe.quality.preflight import PreflightStatus, run_preflight_checks
+
+    console.print(f"[blue]Running preflight checks: {schema_file}[/blue]\n")
+
+    try:
+        schema = FusionSchema.from_yaml(schema_file)
+    except Exception as e:
+        console.print(f"[red]Error loading schema: {e}[/red]")
+        raise click.Abort()
+
+    # Filter sources if specified
+    sources_to_check = schema.sources
+    if source:
+        source_names = set(source)
+        sources_to_check = [s for s in schema.sources if s.name in source_names]
+
+        if not sources_to_check:
+            console.print(f"[red]No sources found matching: {source}[/red]")
+            raise click.Abort()
+
+    # Run checks
+    all_pass = True
+    has_warnings = False
+
+    for src in sources_to_check:
+        result = run_preflight_checks(src)
+
+        # Display result
+        if result.status == PreflightStatus.PASS:
+            console.print(f"[green]PASS[/green] {src.name} ({result.duration_ms:.1f}ms)")
+        elif result.status == PreflightStatus.WARN:
+            console.print(f"[yellow]WARN[/yellow] {src.name}")
+            has_warnings = True
+            for issue in result.warnings:
+                console.print(f"  [yellow]![/yellow] {issue.message}")
+                console.print(f"    [dim]{issue.suggestion}[/dim]")
+        else:
+            console.print(f"[red]FAIL[/red] {src.name}")
+            all_pass = False
+            for issue in result.errors:
+                console.print(f"  [red]X[/red] {issue.message}")
+                console.print(f"    [dim]{issue.suggestion}[/dim]")
+
+    console.print()
+
+    if not all_pass:
+        console.print("[red]Preflight checks failed. Fix errors before proceeding.[/red]")
+        raise click.Abort()
+    elif strict and has_warnings:
+        console.print("[yellow]Preflight checks have warnings (--strict mode)[/yellow]")
+        raise click.Abort()
+    else:
+        console.print("[green]All preflight checks passed.[/green]")
 
 
 @main.command()
