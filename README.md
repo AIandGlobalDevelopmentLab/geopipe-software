@@ -23,9 +23,11 @@ geopipe simplifies large-scale geospatial data pipelines that integrate satellit
 
 - **Declarative Data Fusion**: YAML/Python schemas for joining 27+ heterogeneous sources
 - **Remote Data Access**: Download from Earth Engine, Planetary Computer, and STAC catalogs
+- **Data Discovery**: Query available datasets across cloud catalogs with `discover()`
+- **Quality Intelligence**: Proactive data auditing with `schema.audit()` before expensive computation
+- **Robustness DSL**: Declarative YAML specifications for sensitivity analysis across parameter space
 - **Pipeline Orchestration**: DAG-based workflows with checkpointing and resume
 - **Cluster Computing**: Native SLURM/PBS integration with job monitoring
-- **Robustness Specifications**: Manage parallel analysis variants (MAIN, ROBUST_*, etc.)
 
 ## Installation
 
@@ -206,12 +208,12 @@ executor.status()  # Monitor progress
 
 ### 5. Manage Robustness Specifications
 
-Run parallel analysis variants to assess sensitivity of results:
+Run parallel analysis variants to assess sensitivity of results. See [Robustness DSL](#robustness-dsl) for the declarative YAML approach.
 
 ```python
 from geopipe.specs import Spec, SpecRegistry
 
-# Define analysis variants
+# Define analysis variants programmatically
 specs = SpecRegistry([
     Spec("MAIN", buffer_km=5, include_ntl=True),
     Spec("ROBUST_BUFFER", buffer_km=10, include_ntl=True),
@@ -221,23 +223,29 @@ specs = SpecRegistry([
 # Run each specification
 for spec in specs:
     schema.output = f"results/{spec.name}/estimates.csv"
-    pipeline = Pipeline.from_schema(schema)
-    pipeline.run()
+    schema.execute()
 
-# Compare results across specifications
-specs.compare_results(
-    pattern="{spec}/estimates.csv",
-    estimate_col="estimate",
-    se_col="std_error",
-)
-
-# Generate LaTeX table for publication
+# Compare results and generate LaTeX table
 latex = specs.to_latex(
     pattern="{spec}/estimates.csv",
     estimate_col="estimate",
     se_col="std_error",
     caption="Robustness Specifications",
 )
+```
+
+Or use the declarative YAML approach (recommended):
+
+```yaml
+# schema.yaml
+robustness:
+  dimensions:
+    buffer_km: [5, 10, 25]
+    include_ntl: [true, false]
+```
+
+```bash
+geopipe specs run schema.yaml
 ```
 
 ## Use Case: Satellite Imagery Causal Inference
@@ -511,6 +519,255 @@ data/remote/
 
 Subsequent calls with the same parameters load from cache without re-downloading.
 
+## Data Discovery
+
+Discover available datasets across cloud catalogs before building your pipeline:
+
+```python
+from geopipe import discover
+
+# Find nightlights data
+results = discover(
+    bounds=(-122.5, 37.7, -122.4, 37.8),
+    categories=["nightlights"],
+)
+
+for r in results:
+    print(f"{r.name}: {r.resolution_m}m ({r.provider})")
+
+# Convert discovery result to source
+source = results[0].to_source(name="sf_ntl")
+schema.add_source(source)
+```
+
+### CLI Discovery
+
+```bash
+# Search by category
+geopipe discover search --category nightlights
+
+# Search by provider
+geopipe discover search --provider earthengine --format table
+
+# Get dataset details
+geopipe discover info viirs_dnb_monthly
+
+# List all known datasets
+geopipe discover list-datasets
+
+# List categories
+geopipe discover categories
+```
+
+### Available Categories
+
+| Category | Description | Example Datasets |
+|----------|-------------|------------------|
+| `nightlights` | Nighttime light emissions | VIIRS DNB, DMSP-OLS |
+| `optical` | Multispectral imagery | Sentinel-2, Landsat, MODIS |
+| `sar` | Synthetic aperture radar | Sentinel-1, ALOS PALSAR |
+| `elevation` | Digital elevation models | SRTM, Copernicus DEM |
+| `climate` | Weather and climate | ERA5, CHIRPS, TerraClimate |
+| `land_cover` | Land use classification | ESA WorldCover, Dynamic World |
+| `vegetation` | Vegetation indices | MODIS NDVI/EVI, LAI |
+| `population` | Population density | WorldPop, LandScan |
+| `infrastructure` | Built environment | GHSL, OSM Buildings |
+
+### Complementary Datasets
+
+Discovery results can suggest related datasets:
+
+```python
+viirs = discover(categories=["nightlights"])[0]
+related = viirs.suggest_complementary()
+# Returns: Sentinel-2, Landsat, etc.
+```
+
+## Data Quality Intelligence
+
+Audit data quality before running expensive computations:
+
+```python
+from geopipe import FusionSchema
+
+schema = FusionSchema.from_yaml("sources.yaml")
+
+# Run quality audit
+report = schema.audit()
+
+# Check results
+print(report.summary())
+print(f"Overall score: {report.overall_score}/100")
+
+if report.has_errors:
+    print("Critical issues found!")
+    for issue in report.filter(severity="error"):
+        print(f"  - {issue.source_name}: {issue.message}")
+
+# Export report
+report.to_markdown("quality_report.md")
+```
+
+### CLI Audit
+
+```bash
+# Basic audit
+geopipe audit schema.yaml
+
+# Save report
+geopipe audit schema.yaml --output report.md
+
+# Auto-fix issues
+geopipe audit schema.yaml --fix
+
+# Strict mode (fail on warnings)
+geopipe audit schema.yaml --strict
+```
+
+### Quality Checks
+
+| Check | Category | Description |
+|-------|----------|-------------|
+| `TemporalOverlapCheck` | Cross-source | Verify all sources have overlapping time ranges |
+| `CRSAlignmentCheck` | Cross-source | Check CRS compatibility across sources |
+| `BoundsOverlapCheck` | Cross-source | Verify spatial extents overlap |
+| `TemporalGapCheck` | Raster | Detect missing dates in time series |
+| `SpatialCoverageCheck` | Raster | Report NoData percentage in AOI |
+| `MissingValueCheck` | Tabular | Check for nulls in key columns |
+| `GeocodingPrecisionCheck` | Tabular | Analyze coordinate precision |
+
+### Issue Severity
+
+- **ERROR**: Critical issues that will cause fusion to fail
+- **WARNING**: Issues that may affect data quality (-10 points)
+- **INFO**: Informational notes (-2 points)
+
+## Robustness DSL
+
+Define robustness specifications declaratively in YAML for sensitivity analysis:
+
+```yaml
+# schema.yaml
+name: aid_effects
+resolution: 5km
+temporal_range: [2010-01-01, 2020-12-31]
+
+sources:
+  - type: tabular
+    name: conflict
+    path: data/acled.csv
+    spatial_join: buffer_${buffer_km}km  # Template substitution
+
+output: results/${spec_name}/fused.parquet  # Per-spec output
+
+robustness:
+  dimensions:
+    buffer_km: [5, 10, 25, 50]
+    include_ntl: [true, false]
+    temporal_lag: [0, 1, 2]
+
+  exclude:
+    - buffer_km: 50
+      temporal_lag: 2  # Invalid combination
+
+  named:
+    MAIN:
+      buffer_km: 10
+      include_ntl: true
+      temporal_lag: 0
+```
+
+This generates 4 x 2 x 3 - 1 = 23 specifications automatically.
+
+### Python API
+
+```python
+from geopipe import FusionSchema
+
+schema = FusionSchema.from_yaml("schema.yaml")
+
+# Expand to spec + configured schema pairs
+for spec, configured_schema in schema.expand_specs():
+    print(f"Running {spec.name}...")
+    configured_schema.execute()
+```
+
+### CLI Commands
+
+```bash
+# Preview specifications
+geopipe specs list schema.yaml
+
+# Preview with parameters
+geopipe specs list schema.yaml --verbose
+
+# Write individual schema files
+geopipe specs expand schema.yaml --output-dir schemas/
+
+# Run all specifications
+geopipe specs run schema.yaml
+
+# Run specific specs only
+geopipe specs run schema.yaml --spec MAIN --spec ROBUST_BUFFER
+
+# Dry run (show what would execute)
+geopipe specs run schema.yaml --dry-run
+```
+
+### Specification Curve Analysis
+
+Analyze results across all specifications:
+
+```bash
+# Generate specification curve from results
+geopipe specs curve "results/*/estimates.csv" --output curve.pdf
+
+# Export as LaTeX table
+geopipe specs curve "results/*.csv" --format latex
+
+# With custom column names
+geopipe specs curve "results/*.csv" \
+  --estimate-col treatment_effect \
+  --se-col robust_se
+```
+
+```python
+from geopipe.specs import SpecificationCurve
+
+curve = SpecificationCurve(
+    specs=specs,
+    results_pattern="results/{spec_name}/estimates.csv",
+    estimate_col="treatment_effect",
+)
+
+# Summary statistics
+summary = curve.compute_summary()
+print(f"Mean estimate: {summary['mean_estimate']:.4f}")
+print(f"% Significant: {summary['pct_significant_05']:.1f}%")
+
+# Rank dimensions by influence
+influence = curve.rank_by_influence()
+print(influence[["dimension", "variance_ratio"]])
+
+# Generate plot
+curve.plot("figures/spec_curve.pdf")
+
+# Export for publication
+print(curve.to_latex())
+```
+
+### Template Substitution
+
+Use `${param}` or `{param}` in schema values:
+
+```yaml
+sources:
+  - name: conflict
+    spatial_join: buffer_${buffer_km}km
+
+output: results/{spec_name}/data.parquet
+```
+
 ### YAML Configuration
 
 Remote sources work in YAML schemas:
@@ -541,9 +798,11 @@ sources:
 
 - [Data Sources](docs/sources.md)
 - [Fusion Schemas](docs/fusion.md)
+- [Data Discovery](docs/discovery.md)
+- [Quality Intelligence](docs/quality.md)
+- [Robustness DSL](docs/robustness.md)
 - [Pipeline Orchestration](docs/pipeline.md)
 - [Cluster Computing](docs/cluster.md)
-- [Robustness Specifications](docs/specs.md)
 
 ## License
 

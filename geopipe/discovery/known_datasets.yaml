@@ -1,0 +1,349 @@
+# Known Geospatial Datasets Registry
+# Curated list of commonly used datasets for causal inference research
+
+datasets:
+  # ============================================================
+  # NIGHTLIGHTS
+  # ============================================================
+  - id: viirs_dnb_monthly
+    name: VIIRS Day/Night Band Monthly
+    provider: earthengine
+    collection: NOAA/VIIRS/DNB/MONTHLY_V1/VCMCFG
+    categories: [nightlights]
+    temporal_range: ["2012-04-01", null]
+    spatial_resolution_m: 500
+    bands: [avg_rad, cf_cvg]
+    description: Monthly average radiance composites from VIIRS sensor
+    complementary: [dmsp_ols, sentinel2_l2a, landsat_c2_l2]
+
+  - id: viirs_dnb_annual
+    name: VIIRS Day/Night Band Annual
+    provider: earthengine
+    collection: NOAA/VIIRS/DNB/ANNUAL_V21
+    categories: [nightlights]
+    temporal_range: ["2012-01-01", null]
+    spatial_resolution_m: 500
+    bands: [average, maximum, median]
+    description: Annual composites of nighttime lights
+    complementary: [viirs_dnb_monthly, worldpop]
+
+  - id: dmsp_ols
+    name: DMSP-OLS Nighttime Lights
+    provider: earthengine
+    collection: NOAA/DMSP-OLS/NIGHTTIME_LIGHTS
+    categories: [nightlights]
+    temporal_range: ["1992-01-01", "2013-12-31"]
+    spatial_resolution_m: 1000
+    bands: [stable_lights, avg_vis]
+    description: Historical nighttime lights from DMSP satellites
+    complementary: [viirs_dnb_monthly]
+
+  # ============================================================
+  # OPTICAL IMAGERY
+  # ============================================================
+  - id: sentinel2_l2a
+    name: Sentinel-2 L2A Surface Reflectance
+    provider: planetary_computer
+    collection: sentinel-2-l2a
+    categories: [optical]
+    temporal_range: ["2017-03-28", null]
+    spatial_resolution_m: 10
+    bands: [B02, B03, B04, B08, B11, B12, SCL]
+    description: High-resolution multispectral imagery with atmospheric correction
+    complementary: [landsat_c2_l2, sentinel1_grd]
+
+  - id: sentinel2_ee
+    name: Sentinel-2 MSI
+    provider: earthengine
+    collection: COPERNICUS/S2_SR_HARMONIZED
+    categories: [optical]
+    temporal_range: ["2017-03-28", null]
+    spatial_resolution_m: 10
+    bands: [B2, B3, B4, B8, B11, B12]
+    description: Harmonized Sentinel-2 surface reflectance via Earth Engine
+    complementary: [landsat_c2_l2_ee]
+
+  - id: landsat_c2_l2
+    name: Landsat Collection 2 Level-2
+    provider: planetary_computer
+    collection: landsat-c2-l2
+    categories: [optical]
+    temporal_range: ["1982-08-22", null]
+    spatial_resolution_m: 30
+    bands: [SR_B1, SR_B2, SR_B3, SR_B4, SR_B5, SR_B7]
+    description: Landsat 4-9 surface reflectance with long historical record
+    complementary: [sentinel2_l2a, modis_terra_sr]
+
+  - id: landsat_c2_l2_ee
+    name: Landsat 8/9 Collection 2 Level-2
+    provider: earthengine
+    collection: LANDSAT/LC08/C02/T1_L2
+    categories: [optical]
+    temporal_range: ["2013-03-18", null]
+    spatial_resolution_m: 30
+    bands: [SR_B2, SR_B3, SR_B4, SR_B5, SR_B6, SR_B7]
+    description: Landsat 8/9 surface reflectance via Earth Engine
+    complementary: [sentinel2_ee]
+
+  - id: modis_terra_sr
+    name: MODIS Terra Surface Reflectance
+    provider: earthengine
+    collection: MODIS/061/MOD09GA
+    categories: [optical]
+    temporal_range: ["2000-02-24", null]
+    spatial_resolution_m: 500
+    bands: [sur_refl_b01, sur_refl_b02, sur_refl_b03, sur_refl_b04]
+    description: Daily MODIS surface reflectance
+    complementary: [modis_ndvi, landsat_c2_l2]
+
+  # ============================================================
+  # SAR (Synthetic Aperture Radar)
+  # ============================================================
+  - id: sentinel1_grd
+    name: Sentinel-1 GRD
+    provider: planetary_computer
+    collection: sentinel-1-grd
+    categories: [sar]
+    temporal_range: ["2014-10-03", null]
+    spatial_resolution_m: 10
+    bands: [VV, VH]
+    description: C-band SAR Ground Range Detected imagery
+    complementary: [sentinel2_l2a, alos_palsar]
+
+  - id: sentinel1_ee
+    name: Sentinel-1 SAR GRD
+    provider: earthengine
+    collection: COPERNICUS/S1_GRD
+    categories: [sar]
+    temporal_range: ["2014-10-03", null]
+    spatial_resolution_m: 10
+    bands: [VV, VH, angle]
+    description: Sentinel-1 SAR via Earth Engine with built-in processing
+    complementary: [sentinel2_ee]
+
+  - id: alos_palsar
+    name: ALOS PALSAR Yearly Mosaic
+    provider: earthengine
+    collection: JAXA/ALOS/PALSAR/YEARLY/SAR
+    categories: [sar]
+    temporal_range: ["2007-01-01", "2010-12-31"]
+    spatial_resolution_m: 25
+    bands: [HH, HV]
+    description: L-band SAR mosaics for forest monitoring
+    complementary: [sentinel1_grd, global_forest_change]
+
+  # ============================================================
+  # ELEVATION / DEM
+  # ============================================================
+  - id: srtm_30m
+    name: SRTM Digital Elevation 30m
+    provider: earthengine
+    collection: USGS/SRTMGL1_003
+    categories: [elevation]
+    temporal_range: ["2000-02-11", "2000-02-21"]
+    spatial_resolution_m: 30
+    bands: [elevation]
+    description: Shuttle Radar Topography Mission 30m DEM
+    complementary: [alos_dem, cop_dem]
+
+  - id: cop_dem
+    name: Copernicus DEM
+    provider: planetary_computer
+    collection: cop-dem-glo-30
+    categories: [elevation]
+    temporal_range: ["2021-04-22", "2021-04-22"]
+    spatial_resolution_m: 30
+    bands: [data]
+    description: Copernicus 30m global DEM derived from TanDEM-X
+    complementary: [srtm_30m]
+
+  - id: alos_dem
+    name: ALOS World 3D - 30m
+    provider: earthengine
+    collection: JAXA/ALOS/AW3D30/V3_2
+    categories: [elevation]
+    temporal_range: ["2006-01-01", "2011-12-31"]
+    spatial_resolution_m: 30
+    bands: [DSM, MSK]
+    description: ALOS-derived 30m global DSM
+    complementary: [srtm_30m]
+
+  # ============================================================
+  # CLIMATE / WEATHER
+  # ============================================================
+  - id: era5_monthly
+    name: ERA5 Monthly Aggregates
+    provider: earthengine
+    collection: ECMWF/ERA5/MONTHLY
+    categories: [climate]
+    temporal_range: ["1979-01-01", null]
+    spatial_resolution_m: 27830
+    bands: [mean_2m_air_temperature, total_precipitation, u_component_of_wind_10m, v_component_of_wind_10m]
+    description: ERA5 reanalysis monthly climate data
+    complementary: [chirps_daily, terraclimate]
+
+  - id: chirps_daily
+    name: CHIRPS Daily Precipitation
+    provider: earthengine
+    collection: UCSB-CHG/CHIRPS/DAILY
+    categories: [climate]
+    temporal_range: ["1981-01-01", null]
+    spatial_resolution_m: 5566
+    bands: [precipitation]
+    description: Climate Hazards Group InfraRed Precipitation with Station data
+    complementary: [era5_monthly, terraclimate]
+
+  - id: terraclimate
+    name: TerraClimate Monthly
+    provider: earthengine
+    collection: IDAHO_EPSCOR/TERRACLIMATE
+    categories: [climate]
+    temporal_range: ["1958-01-01", null]
+    spatial_resolution_m: 4638
+    bands: [tmmx, tmmn, pr, pet, aet, soil, def]
+    description: Monthly climate and water balance for global land surfaces
+    complementary: [era5_monthly, chirps_daily]
+
+  # ============================================================
+  # LAND COVER
+  # ============================================================
+  - id: esri_lulc_10m
+    name: ESRI 10m Land Use/Land Cover
+    provider: planetary_computer
+    collection: io-lulc-9-class
+    categories: [land_cover]
+    temporal_range: ["2017-01-01", null]
+    spatial_resolution_m: 10
+    bands: [data]
+    description: Annual 10m land cover classification from Sentinel-2
+    complementary: [esa_worldcover, dynamic_world]
+
+  - id: esa_worldcover
+    name: ESA WorldCover 10m
+    provider: earthengine
+    collection: ESA/WorldCover/v200
+    categories: [land_cover]
+    temporal_range: ["2021-01-01", "2021-12-31"]
+    spatial_resolution_m: 10
+    bands: [Map]
+    description: ESA global land cover map at 10m resolution
+    complementary: [esri_lulc_10m, dynamic_world]
+
+  - id: dynamic_world
+    name: Dynamic World
+    provider: earthengine
+    collection: GOOGLE/DYNAMICWORLD/V1
+    categories: [land_cover]
+    temporal_range: ["2015-06-27", null]
+    spatial_resolution_m: 10
+    bands: [water, trees, grass, crops, built, bare, label]
+    description: Near real-time 10m land cover from Sentinel-2
+    complementary: [esa_worldcover, sentinel2_ee]
+
+  - id: global_forest_change
+    name: Hansen Global Forest Change
+    provider: earthengine
+    collection: UMD/hansen/global_forest_change_2022_v1_10
+    categories: [land_cover, vegetation]
+    temporal_range: ["2000-01-01", "2022-12-31"]
+    spatial_resolution_m: 30
+    bands: [treecover2000, loss, gain, lossyear]
+    description: Global forest loss and gain from Hansen et al.
+    complementary: [modis_ndvi, alos_palsar]
+
+  # ============================================================
+  # VEGETATION INDICES
+  # ============================================================
+  - id: modis_ndvi
+    name: MODIS NDVI 16-day
+    provider: earthengine
+    collection: MODIS/061/MOD13A2
+    categories: [vegetation]
+    temporal_range: ["2000-02-18", null]
+    spatial_resolution_m: 1000
+    bands: [NDVI, EVI]
+    description: 16-day NDVI and EVI from MODIS Terra
+    complementary: [sentinel2_ee, modis_lai]
+
+  - id: modis_lai
+    name: MODIS LAI/FPAR
+    provider: earthengine
+    collection: MODIS/061/MCD15A3H
+    categories: [vegetation]
+    temporal_range: ["2002-07-04", null]
+    spatial_resolution_m: 500
+    bands: [Lai, Fpar]
+    description: Leaf Area Index and Fraction of Photosynthetically Active Radiation
+    complementary: [modis_ndvi]
+
+  # ============================================================
+  # POPULATION / SOCIOECONOMIC
+  # ============================================================
+  - id: worldpop
+    name: WorldPop Global Population
+    provider: earthengine
+    collection: WorldPop/GP/100m/pop
+    categories: [population]
+    temporal_range: ["2000-01-01", "2020-12-31"]
+    spatial_resolution_m: 100
+    bands: [population]
+    description: Gridded population estimates at 100m resolution
+    complementary: [viirs_dnb_monthly, ghsl_built]
+
+  - id: landscan_hd
+    name: LandScan HD Population
+    provider: earthengine
+    collection: DOE/ORNL/LandScan_HD/GLOBAL
+    categories: [population]
+    temporal_range: ["2021-01-01", "2021-12-31"]
+    spatial_resolution_m: 100
+    bands: [population]
+    description: High-resolution daytime population distribution
+    complementary: [worldpop]
+
+  - id: ghsl_built
+    name: GHSL Built-Up Surface
+    provider: earthengine
+    collection: JRC/GHSL/P2023A/GHS_BUILT_S
+    categories: [infrastructure, population]
+    temporal_range: ["1975-01-01", "2030-12-31"]
+    spatial_resolution_m: 10
+    bands: [built_surface]
+    description: Global Human Settlement Layer built-up area
+    complementary: [worldpop, viirs_dnb_monthly]
+
+  - id: ghsl_smod
+    name: GHSL Settlement Model Grid
+    provider: earthengine
+    collection: JRC/GHSL/P2023A/GHS_SMOD
+    categories: [infrastructure, population]
+    temporal_range: ["1975-01-01", "2030-12-31"]
+    spatial_resolution_m: 1000
+    bands: [smod_code]
+    description: Degree of urbanization classification
+    complementary: [ghsl_built, worldpop]
+
+  # ============================================================
+  # INFRASTRUCTURE
+  # ============================================================
+  - id: osm_buildings
+    name: OpenStreetMap Buildings
+    provider: earthengine
+    collection: GOOGLE/Research/open-buildings/v3/polygons
+    categories: [infrastructure]
+    temporal_range: ["2022-01-01", null]
+    spatial_resolution_m: 0.5
+    bands: [confidence, geometry]
+    description: ML-derived building footprints for Africa and South Asia
+    complementary: [ghsl_built, sentinel2_ee]
+
+  - id: global_power_plant
+    name: Global Power Plant Database
+    provider: stac
+    collection: https://raw.githubusercontent.com/wri/global-power-plant-database/master/output_database/global_power_plant_database.csv
+    categories: [infrastructure]
+    temporal_range: ["2017-01-01", "2021-12-31"]
+    spatial_resolution_m: 0
+    bands: [capacity_mw, fuel, country]
+    description: Comprehensive database of power plants worldwide
+    complementary: [viirs_dnb_monthly]

@@ -16,6 +16,12 @@ from geopipe.fusion.schema import FusionSchema
 from geopipe.pipeline.tasks import task
 from geopipe.pipeline.dag import Pipeline
 
+# Quality intelligence
+from geopipe.quality import QualityReport, QualityIssue, IssueSeverity
+
+# Discovery
+from geopipe.discovery import discover, DiscoveryResult, CatalogRegistry
+
 # Remote sources (lazy imports to avoid dependency errors if not installed)
 try:
     from geopipe.sources.earthengine import EarthEngineSource
@@ -35,14 +41,27 @@ except ImportError:
 __version__ = "0.1.0"
 
 __all__ = [
+    # Core sources
     "DataSource",
     "RasterSource",
     "TabularSource",
+    # Remote sources
     "EarthEngineSource",
     "PlanetaryComputerSource",
     "STACSource",
+    # Fusion
     "FusionSchema",
+    # Pipeline
     "Pipeline",
     "task",
+    # Quality
+    "QualityReport",
+    "QualityIssue",
+    "IssueSeverity",
+    # Discovery
+    "discover",
+    "DiscoveryResult",
+    "CatalogRegistry",
+    # Version
     "__version__",
 ]

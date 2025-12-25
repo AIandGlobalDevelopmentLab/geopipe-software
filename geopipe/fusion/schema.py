@@ -1,7 +1,13 @@
 """Declarative fusion schema for multi-source data integration."""
 
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from geopipe.quality.report import QualityReport
+    from geopipe.specs.variants import Spec
 
 import geopandas as gpd
 import pandas as pd
@@ -58,6 +64,9 @@ class FusionSchema(BaseModel):
     )
     output: str = Field(..., description="Output path for fused data")
     target_crs: str = Field("EPSG:4326", description="Target coordinate reference system")
+    robustness: dict[str, Any] | None = Field(
+        None, description="Robustness specification block for generating variants"
+    )
 
     def __init__(self, sources: list[DataSource] | None = None, **data: Any) -> None:
         """Initialize schema, handling source objects."""
@@ -125,6 +134,9 @@ class FusionSchema(BaseModel):
             "target_crs": self.target_crs,
         }
 
+        if self.robustness:
+            config["robustness"] = self.robustness
+
         path = Path(path)
         with open(path, "w") as f:
             yaml.dump(config, f, default_flow_style=False, sort_keys=False)
@@ -141,6 +153,50 @@ class FusionSchema(BaseModel):
             source_issues = source.validate()
             issues.extend([f"{source.name}: {issue}" for issue in source_issues])
         return issues
+
+    def expand_specs(self) -> list[tuple["Spec", "FusionSchema"]]:
+        """
+        Expand robustness block into spec+schema pairs.
+
+        If no robustness block is defined, returns a single "MAIN" spec
+        with this schema unchanged.
+
+        Returns:
+            List of (Spec, FusionSchema) tuples for each specification
+
+        Example:
+            >>> schema = FusionSchema.from_yaml("schema.yaml")
+            >>> for spec, configured_schema in schema.expand_specs():
+            ...     configured_schema.execute()
+        """
+        from geopipe.specs.dsl import RobustnessDSL, expand_robustness_specs
+        from geopipe.specs.variants import Spec
+
+        if not self.robustness:
+            # No robustness block - return single "MAIN" spec
+            return [(Spec("MAIN"), self)]
+
+        # Convert schema to dict for template substitution
+        schema_dict = {
+            "name": self.name,
+            "resolution": self.resolution,
+            "temporal_range": list(self.temporal_range) if self.temporal_range else None,
+            "sources": [s.to_dict() for s in self.sources],
+            "output": self.output,
+            "target_crs": self.target_crs,
+            "robustness": self.robustness,
+        }
+
+        specs, schema_dicts = expand_robustness_specs(schema_dict)
+
+        # Convert schema dicts back to FusionSchema objects
+        result = []
+        for spec, sd in zip(specs, schema_dicts):
+            # Need to create a new FusionSchema from the substituted dict
+            new_schema = FusionSchema.model_validate(sd)
+            result.append((spec, new_schema))
+
+        return result
 
     def execute(
         self,
@@ -319,6 +375,35 @@ class FusionSchema(BaseModel):
             lines.append(f"    - {source.name} ({source.__class__.__name__})")
 
         return "\n".join(lines)
+
+    def audit(
+        self,
+        checks: list | None = None,
+        sample_size: int = 1000,
+    ) -> "QualityReport":
+        """
+        Audit data quality before fusion.
+
+        Runs quality checks on all sources and returns a report with
+        issues, scores, and recommendations.
+
+        Args:
+            checks: Custom quality checks to run (uses defaults if None)
+            sample_size: Sample size for data-level checks
+
+        Returns:
+            QualityReport with issues and scores
+
+        Example:
+            >>> schema = FusionSchema.from_yaml("schema.yaml")
+            >>> report = schema.audit()
+            >>> print(report.summary())
+            >>> if report.has_errors:
+            ...     raise ValueError("Data quality issues found")
+        """
+        from geopipe.quality.report import QualityReport
+
+        return QualityReport.from_schema(self, checks=checks, sample_size=sample_size)
 
     def __repr__(self) -> str:
         return f"FusionSchema(name={self.name!r}, sources={len(self.sources)})"
