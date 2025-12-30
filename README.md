@@ -794,16 +794,6 @@ sources:
     output_dir: data/remote
 ```
 
-## Documentation
-
-- [Data Sources](docs/sources.md)
-- [Fusion Schemas](docs/fusion.md)
-- [Data Discovery](docs/discovery.md)
-- [Quality Intelligence](docs/quality.md)
-- [Robustness DSL](docs/robustness.md)
-- [Pipeline Orchestration](docs/pipeline.md)
-- [Cluster Computing](docs/cluster.md)
-
 ## License
 
 MIT License. See [LICENSE](LICENSE) for details.
